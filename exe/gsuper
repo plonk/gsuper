@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+require 'gsuper'
+
+GSuper::Program.new.run

@@ -1,5 +1,4 @@
 require "gsuper/version"
-
-module Gsuper
-  # Your code goes here...
-end
+require "gsuper/color"
+require "gsuper/super_window"
+require "gsuper/program"
