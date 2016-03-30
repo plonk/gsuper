@@ -109,7 +109,7 @@ class Program
     status_icon = StatusIcon.new
     status_icon.title = "gsuper"
     status_icon.tooltip = "gsuper"
-    status_icon.pixbuf = Gdk::Pixbuf.new('icon.png')
+    status_icon.pixbuf = Gdk::Pixbuf.new(File.dirname(__FILE__) + '/images/icon.png')
     status_icon.signal_connect("activate") {|s|
       super_window.interactive = !super_window.interactive?
       p [:activate, @present]
