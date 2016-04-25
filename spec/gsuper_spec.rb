@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe Gsuper do
+describe GSuper do
   it 'has a version number' do
-    expect(Gsuper::VERSION).not_to be nil
+    expect(GSuper::VERSION).not_to be nil
   end
 
   it 'does something useful' do

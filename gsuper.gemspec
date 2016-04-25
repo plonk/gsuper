@@ -5,7 +5,7 @@ require 'gsuper/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "gsuper"
-  spec.version       = Gsuper::VERSION
+  spec.version       = GSuper::VERSION
   spec.authors       = ["Yoteichi"]
   spec.email         = ["plonk@piano.email.ne.jp"]
 
