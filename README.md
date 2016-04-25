@@ -1,36 +1,37 @@
-# Gsuper
+# GSuper
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/gsuper`. To experiment with that code, run `bin/console` for an interactive prompt.
+デスクトップ配信などで画面上にメッセージを重ね合わせたい時に使える、字
+幕表示プログラムです。
 
-TODO: Delete this and the text above, and describe your gem
+X Window System で使われることを想定しており、デスクトップ合成機能付き
+のウィンドウマネージャーと使う必要があります。
 
-## Installation
+## インストール
 
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'gsuper'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
+次のようにインストールしてください。
 
     $ gem install gsuper
 
-## Usage
+## 使い方
 
-TODO: Write usage instructions here
+`gsuper`コマンドで起動し、緑色の字幕ウィンドウとテキスト入力用のメイン
+ウィンドウが表示されます。
 
-## Development
+字幕ウィンドウは右下のハンドルをドラッグして大きさを変えることができ、
+それ以外の場所をドラッグするとウィンドウが移動します。
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+メッセージを編集するには、メインウィンドウのテキストエリアを使います。
+メインウィンドウ右上の「字幕操作」トグルボタンをオフにすると字幕ウィン
+ドウの背景が透明になり、字幕の下にあるウィンドウが自由に操作できるよう
+になります。
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+字幕を表示したままメインウィンドウを閉じることができ、その場合システム
+トレイのアイコンをダブルクリックして再び呼び出すことができます。
 
-## Contributing
+プログラムを終了する場合は、システムトレイアイコンの右クリックメニュー
+から「終了」を選択してください。
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/gsuper.
+## 貢献
 
+バグ報告やプルリクエストは Github の https://github.com/plonk/gsuper
+までどうぞ。

@@ -39,7 +39,7 @@ class SuperWindow < Gtk::Window
     end
 
     signal_connect('configure-event') do
-      p :configure
+      # p :configure
       invalidate
       set_responsive(interactive?)
       # exposeを誘発するためにfalseを返す
@@ -60,14 +60,14 @@ class SuperWindow < Gtk::Window
         move = true
         press_point = [ev_button.x, ev_button.y]
       end
-      p :press
+      # p :press
     end
 
     signal_connect('button-release-event') do
       button_pressed = false
       press_point = nil
       move = nil
-      p :release
+      # p :release
     end
 
     signal_connect('motion-notify-event') do |_, ev_motion|
@@ -82,7 +82,7 @@ class SuperWindow < Gtk::Window
           # set_responsive(true)
         end
       end
-      p :pointer_motion
+      # p :pointer_motion
     end
 
     # self.decorated = false
@@ -228,11 +228,11 @@ class SuperWindow < Gtk::Window
   def screen_changed
     colormap = self.screen.rgba_colormap
     if colormap
-      puts 'alpha channel supported'
+      # puts 'alpha channel supported'
       @alpha_supported = true
       self.colormap = colormap
     else
-      puts 'alpha channel NOT supported'
+      STDERR.puts 'Warning: alpha channel NOT supported'
       @alpha_supported = false
       self.colormap = self.screen.rgb_colormap
     end

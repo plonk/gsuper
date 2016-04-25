@@ -1,11 +1,12 @@
 require "toml"
+require "fileutils"
 
 module GSuper
 
 module Settings
   def default
     {
-      "font" => "sans-serif",
+      "font" => "Sans Bold 24",
       "super-x" => 0,
       "super-y" => 0,
       "super-width" => 640,

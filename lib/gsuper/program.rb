@@ -28,16 +28,6 @@ require_relative 'color'
 
 module GSuper
 
-TEXT = <<EOT
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-culpa qui officia deserunt mollit anim id est laborum.
-EOT
-
 class Program
   include Gtk
 
@@ -113,7 +103,7 @@ class Program
         ScrolledWindow.new.tap { |sw|
           sw.hscrollbar_policy = POLICY_AUTOMATIC
           sw.vscrollbar_policy = POLICY_AUTOMATIC
-          text_view.buffer.text = settings['text']
+          text_view.buffer.text = @settings['text']
 
           sw.add(text_view)
           vbox.pack_start(sw)
@@ -131,16 +121,34 @@ class Program
     status_icon.pixbuf = Gdk::Pixbuf.new(File.dirname(__FILE__) + '/images/icon.png')
     status_icon.signal_connect("activate") {|s|
       main_window.present
-      p [:activate, @present]
+      # p [:activate, @present]
     }
     status_icon.signal_connect('popup-menu') do  |widget, button, time|
-      p [:"popup-menu", widget, button, time]
+      # p [:"popup-menu", widget, button, time]
       popup_menu.popup(nil, nil, button, time)
     end
     status_icon.signal_connect('scroll-event') do |widget, event|
-      p [:"scroll-event", widget, event]
+      # p [:"scroll-event", widget, event]
     end
     return status_icon
+  end
+
+  def create_super_window
+    super_window = SuperWindow.new
+    super_window.text = @settings['text']
+    super_window.font_name = @settings['font']
+    super_window.text_color = Color::gdk_color @settings['text-color']
+    super_window.shadow_color = Color::gdk_color @settings['shadow-color']
+    super_window.resize(@settings['super-width'], @settings['super-height'])
+    super_window.move(@settings['super-x'], @settings['super-y'])
+    super_window.signal_connect('configure-event') do |_widget, config|
+      @settings['super-x'] = config.x
+      @settings['super-y'] = config.y
+      @settings['super-width'] = config.width
+      @settings['super-height'] = config.height
+      false
+    end
+    return super_window
   end
 
   def run
@@ -148,15 +156,11 @@ class Program
     @settings = Settings.load
 
     at_exit {
-      STDERR.puts "saving settings"
+      # STDERR.puts "saving settings"
       Settings.save(@settings)
     }
 
-    @super_window = SuperWindow.new
-    @super_window.text = @settings['text']
-    @super_window.font_name = @settings['font']
-    @super_window.text_color = Color::gdk_color @settings['text-color']
-    @super_window.shadow_color = Color::gdk_color @settings['shadow-color']
+    @super_window = create_super_window
     @super_window.show
 
     @window = create_main_window(@super_window)
