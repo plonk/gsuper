@@ -16,6 +16,16 @@ module Color
     return alpha * 65535
   end
   module_function :gdk_alpha
+
+  def pango_triple(color)
+    return [color.red, color.green, color.blue].map { |u16| u16 / 65535.0 }
+  end
+  module_function :pango_triple
+
+  def pango_quadruple(color, alpha)
+    return pango_triple(color) + [alpha / 65535.0]
+  end
+  module_function :pango_quadruple
 end
 
 end

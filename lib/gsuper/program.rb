@@ -1,5 +1,5 @@
 require 'gtk2'
-
+require 'gsuper/settings'
 
 =begin
 
@@ -43,9 +43,7 @@ class Program
 
   def create_popup_menu
     menu = Menu.new
-    [MenuItem.new('Item 1'),
-     MenuItem.new('Item 2'),
-     MenuItem.new('終了').tap { |item|
+    [MenuItem.new('終了').tap { |item|
        item.signal_connect('activate') {
          Gtk.main_quit
        }
@@ -58,60 +56,81 @@ class Program
 
   def create_main_window(super_window)
     return Window.new.tap { |window|
-      window.signal_connect("destroy") {
-        Gtk.main_quit
+      window.signal_connect("delete-event") {
+        window.hide
+        true
       }
 
-      window.border_width = 5
+      window.border_width = 18
 
-      VBox.new.tap { |vbox|
-        HBox.new.tap { |hbox|
+      VBox.new(false, 18).tap { |vbox|
+        HBox.new(false, 12).tap { |hbox|
           font_button = FontButton.new.tap { |font_button|
-            font_button.font_name = super_window.font_name
+            font_button.font_name = @settings['font']
           }
           font_button.signal_connect('font-set') {
-            super_window.font_name = font_button.font_name
+            @settings['font'] = super_window.font_name = font_button.font_name
           }
-          color_button1 = ColorButton.new.tap { |b|
-            b.use_alpha = true
-            b.color = Color::gdk_color(super_window.text_color)
-            b.alpha = Color::gdk_alpha(super_window.text_color)
+          color_hbox = HBox.new(true, 0).tap { |color_hbox|
+            color_button1 = ColorButton.new.tap { |b|
+              b.color = super_window.text_color
+              b.signal_connect('color-set') {
+                super_window.text_color = b.color
+                @settings['text-color'] = Color::pango_triple(b.color)
+              }
+            }
+            color_button2 = ColorButton.new.tap { |b|
+              b.color = super_window.shadow_color
+              b.signal_connect('color-set') {
+                super_window.shadow_color = b.color
+                @settings['shadow-color'] = Color::pango_triple(b.color)
+              }
+            }
+            color_hbox.pack_start(color_button1, false)
+            color_hbox.pack_start(color_button2, false)
           }
-          color_button2 = ColorButton.new.tap { |b|
-            b.use_alpha = true
-            b.color = Color::gdk_color(super_window.shadow_color)
-            b.alpha = Color::gdk_alpha(super_window.shadow_color)
+
+          toggle_button = ToggleButton.new("字幕操作")
+          toggle_button.active = super_window.interactive?
+          toggle_button.modify_bg(Gtk::STATE_ACTIVE, Color::gdk_color([0, 1.0, 0]))
+          toggle_button.signal_connect('toggled') {
+            toggle_button.active =
+              super_window.interactive = !super_window.interactive?
           }
 
           hbox.pack_start(font_button, false)
-          hbox.pack_start(color_button1, false)
-          hbox.pack_start(color_button2, false)
+          hbox.pack_start(color_hbox, false)
+          hbox.pack_start(toggle_button, false)
           
           vbox.pack_start(hbox, false)
         }
         
         text_view = TextView.new
-        super_window.text = text_view.buffer.text = TEXT
-
-        vbox.pack_start(text_view)
-        apply_button = Button.new('適用')
-        apply_button.signal_connect('clicked') {
-          super_window.text = text_view.buffer.text
+        text_view.wrap_mode = TextTag::WRAP_WORD_CHAR
+        text_view.buffer.signal_connect('changed') {
+          @settings['text'] = super_window.text = text_view.buffer.text
         }
-        vbox.pack_start(apply_button , false)
+        ScrolledWindow.new.tap { |sw|
+          sw.hscrollbar_policy = POLICY_AUTOMATIC
+          sw.vscrollbar_policy = POLICY_AUTOMATIC
+          text_view.buffer.text = settings['text']
+
+          sw.add(text_view)
+          vbox.pack_start(sw)
+        }
 
         window.add(vbox)
       }
     }
   end
 
-  def create_status_icon(popup_menu, super_window)
+  def create_status_icon(popup_menu, super_window, main_window)
     status_icon = StatusIcon.new
     status_icon.title = "gsuper"
     status_icon.tooltip = "gsuper"
     status_icon.pixbuf = Gdk::Pixbuf.new(File.dirname(__FILE__) + '/images/icon.png')
     status_icon.signal_connect("activate") {|s|
-      super_window.interactive = !super_window.interactive?
+      main_window.present
       p [:activate, @present]
     }
     status_icon.signal_connect('popup-menu') do  |widget, button, time|
@@ -126,12 +145,23 @@ class Program
 
   def run
     @present = true
+    @settings = Settings.load
+
+    at_exit {
+      STDERR.puts "saving settings"
+      Settings.save(@settings)
+    }
 
     @super_window = SuperWindow.new
+    @super_window.text = @settings['text']
+    @super_window.font_name = @settings['font']
+    @super_window.text_color = Color::gdk_color @settings['text-color']
+    @super_window.shadow_color = Color::gdk_color @settings['shadow-color']
     @super_window.show
+
     @window = create_main_window(@super_window)
     menu = create_popup_menu
-    @status_icon = create_status_icon(menu, @super_window)
+    @status_icon = create_status_icon(menu, @super_window, @window)
     
     @window.show_all
 

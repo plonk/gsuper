@@ -1,8 +1,11 @@
+require 'gsuper/color'
+
 module GSuper
 
 # 字幕ウィンドウを表わすクラス。
 class SuperWindow < Gtk::Window
-  BACKGROUND_COLOR = [0.0, 1.0, 0.0]
+  include Color
+  BACKGROUND_COLOR = Color::gdk_color([0.0, 1.0, 0.0])
   BACKGROUND_ALPHA = 0.5
 
   attr_reader :font_name, :text_color, :shadow_color, :text
@@ -10,9 +13,9 @@ class SuperWindow < Gtk::Window
   def initialize
     super()
 
-    @font_name = 'Sans 12'
-    @text_color = [1.0, 0.5, 0.0, 1.0]
-    @shadow_color = [0.0, 0.0, 1.0, 1.0]
+    @font_name = 'Sans Bold 24'
+    @text_color = Color::gdk_color([1.0, 0.5, 0.0])
+    @shadow_color = Color::gdk_color([0.0, 0.0, 1.0])
     @text = ""
 
     @interactive = true
@@ -27,8 +30,59 @@ class SuperWindow < Gtk::Window
       end
     end
 
+    self.events = Gdk::Event::BUTTON_PRESS_MASK |
+                  Gdk::Event::BUTTON_RELEASE_MASK |
+                  Gdk::Event::POINTER_MOTION_MASK
+
     signal_connect('screen-changed') do 
       screen_changed
+    end
+
+    signal_connect('configure-event') do
+      p :configure
+      invalidate
+      set_responsive(interactive?)
+      # exposeを誘発するためにfalseを返す
+      false
+    end
+
+    button_pressed = false
+    press_point = nil
+    move = nil
+    signal_connect('button-press-event') do |_, ev_button|
+      button_pressed = true
+      w, h = size
+      if ev_button.x.between?(w - 30, w - 1) &&
+         ev_button.y.between?(h - 30, h - 1)
+        move = false
+        press_point = [(w - ev_button.x), (h - ev_button.y)]
+      else
+        move = true
+        press_point = [ev_button.x, ev_button.y]
+      end
+      p :press
+    end
+
+    signal_connect('button-release-event') do
+      button_pressed = false
+      press_point = nil
+      move = nil
+      p :release
+    end
+
+    signal_connect('motion-notify-event') do |_, ev_motion|
+      if interactive? && button_pressed
+        if move
+          move(ev_motion.x_root - press_point[0], ev_motion.y_root - press_point[1])
+        else
+          w = ev_motion.x + press_point[0]
+          h = ev_motion.y + press_point[1]
+          resize([w, 100].max, [h, 100].max)
+          # invalidate
+          # set_responsive(true)
+        end
+      end
+      p :pointer_motion
     end
 
     # self.decorated = false
@@ -42,8 +96,7 @@ class SuperWindow < Gtk::Window
     realize
 
     window.override_redirect = true
-    zero = Gdk::Region.new(Gdk::Rectangle.new(0, 0, 0, 0))
-    window.input_shape_combine_region(zero, 0, 0)
+    set_responsive(true)
   end
 
   def font_name=(font)
@@ -52,11 +105,13 @@ class SuperWindow < Gtk::Window
   end
 
   def text_color=(color)
+    raise TypeError unless color.is_a? Gdk::Color
     @text_color = color
     invalidate
   end
 
   def shadow_color=(color)
+    raise TypeError unless color.is_a? Gdk::Color
     @shadow_color = color
     invalidate
   end
@@ -70,15 +125,22 @@ class SuperWindow < Gtk::Window
     cr = window.create_cairo_context 
 
     if @alpha_supported
-      cr.set_source_rgba(*BACKGROUND_COLOR, BACKGROUND_ALPHA)
+      cr.set_source_rgba(*pango_triple(BACKGROUND_COLOR), BACKGROUND_ALPHA)
     else
-      cr.set_source_rgb(*BACKGROUND_COLOR)
+      cr.set_source_rgb(*pango_triple(BACKGROUND_COLOR))
     end
 
     cr.set_operator(Cairo::OPERATOR_SOURCE)
     cr.paint
 
     draw_text(cr)
+
+    cr.set_source_rgb(0.5, 0.5, 0.5)
+    w, h = size
+    cr.fill do
+      cr.rectangle(w - 30, h - 3, w, h)
+      cr.rectangle(w - 3, h - 30, w, h)
+    end
 
     cr.destroy
 
@@ -105,25 +167,37 @@ class SuperWindow < Gtk::Window
   end
 
   def draw_text(cr)
-    p [:draw_text, font_name]
-    # cr.select_font_face(font_name,
-    #                     Cairo::FONT_SLANT_NORMAL,
-    #                     Cairo::FONT_WEIGHT_NORMAL)
+    # p [:draw_text, font_name]
     desc = Pango::FontDescription.new(font_name)
+
     layout = create_pango_layout
-    # require 'pry'
-    # binding.pry
     layout.width = size[0] * Pango::SCALE
     layout.font_description = desc
     layout.text = text
-    offset = (desc.size.fdiv Pango::SCALE) * (3.fdiv 50)
+
+    offset = shadow_offset(desc)
+
     cr.move_to(offset, offset)
-    cr.set_source_rgba(0.0, 0.0, 5.0, 1.0)
+    cr.set_source_rgba(*pango_triple(@shadow_color), 1.0)
     cr.show_pango_layout(layout)
 
     cr.move_to(0, 0)
-    cr.set_source_rgba(1.0, 0.5, 0.0, 1.0)
+    cr.set_source_rgba(*pango_triple(@text_color), 1.0)
     cr.show_pango_layout(layout)
+  end
+
+  # 右下に二度打ちで「影」を落とす。そのオフセットは線の太さの半分にし
+  # たいとする。
+  def shadow_offset(desc)
+    raise TypeError unless desc.is_a? Pango::FontDescription
+    dpi = window.screen.resolution
+
+    font_px = pt_to_px(desc.size.fdiv(Pango::SCALE), dpi)
+    return ( font_px * (1/12.0) * (desc.weight.to_i / 400.0) * (1/3.0) ).round
+  end
+
+  def pt_to_px(point, dpi)
+    point / 72.0 * dpi
   end
 
   def interactive?
@@ -132,7 +206,18 @@ class SuperWindow < Gtk::Window
 
   def interactive=(flag)
     @interactive = flag
+    set_responsive(flag)
     invalidate
+  end
+
+  def set_responsive(responsive)
+    if responsive
+      width, height = size
+      region = Gdk::Region.new(Gdk::Rectangle.new(0, 0, width, height))
+    else
+      region = Gdk::Region.new(Gdk::Rectangle.new(0, 0, 0, 0))
+    end
+    window.input_shape_combine_region(region, 0, 0)
   end
 
   def invalidate
